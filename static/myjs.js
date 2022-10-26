@@ -125,6 +125,23 @@ function anySize(cb) {
     }
 }
 
+function createTable(data){
+    tableContainer.innerHTML = "";
+    tbl = document.createElement('table');
+    const tr = tbl.insertRow();
+    headers.forEach(element => {
+        const td = tr.insertCell();
+        td.appendChild(document.createTextNode(element));
+    });
+    data.forEach(row => {
+        const tr = tbl.insertRow();
+        headers.forEach(header => {
+            const td = tr.insertCell();
+            td.appendChild(document.createTextNode(row[header].toString()));
+        });
+    });
+    tableContainer.appendChild(tbl)
+}
 $(function () {
     $('#getdata').click(function () {
         var mydata = getValues();
@@ -136,10 +153,12 @@ $(function () {
                 type: 'POST',
                 success: function (response) {
                     /*What do i get?
-                    a list of arrays [id, width, height, time, moves, tps, scramble, solution]
+                    a list of arrays [id, size, time, moves, tps, scramble, solution, date]
                         (move/time array store in db and can be accesed later by id)
                     */
-                    console.log(response.replace("\\\"",""));
+                    data = JSON.parse(response);
+                    console.log(data);
+                    createTable(data);
                 },
                 error: function (error) {
                     console.log(error);

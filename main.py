@@ -1,3 +1,6 @@
+import math
+from datetime import datetime
+
 from flask import Flask, render_template, request, json
 import sqlite3
 from pprint import pprint
@@ -72,7 +75,7 @@ def completedCheck(completedBool):
 
 def bldCheck(bldBool):
     if bldBool:
-        return "success = 1"
+        return "(success = 1 or success IS NULL)"
     return ""
 
 
@@ -117,7 +120,23 @@ def getsqlfromdb(data):
     """.format(rules=getRulesString(data))
     return sqlite3.connect("testing/solves.db").cursor().execute(sql).fetchall()
 
+def truncate(f, n):
+    return math.floor(f * 10 ** n) / 10 ** n
 
+def prepareData(rows):
+    data = []
+    for array in rows:
+        d = {};
+        d['ID'] = array[0]
+        d['Size'] = "{w}x{h}".format(w=array[1], h=array[2])
+        d['Time'] = truncate(array[3]/1000, 3)
+        d['Moves'] = int(array[4]/1000)
+        d['TPS'] = truncate(array[5]/1000, 3)
+        d['Scramble'] = array[6]
+        d['Solution'] = array[7]
+        d['Date'] = datetime.utcfromtimestamp(int(array[8]/1000))
+        data.append(d)
+    return data
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -128,7 +147,8 @@ def getrequest():
     data = request.get_json(force=True)
     q = getRulesString(data)
     rows = getsqlfromdb(data)
-    return json.dumps(rows)
+    out = prepareData(rows)
+    return json.dumps(out)
 
 
 app.run()
