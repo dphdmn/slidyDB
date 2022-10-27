@@ -1,3 +1,86 @@
+$(document).ready(function(){
+    getCurrentConfig();
+    $("#updatecached").click(function(){
+        getData();
+    }); 
+    $("#dbfilepathChange").click(function(){
+        updatePath();
+    });
+    $("#livemodeCB").change(function(){
+        if (livemodeCB.checked){
+            startLive();
+        }else{
+            stopLive();
+        }
+    });
+    $("#liveint").on('input', function(){
+        intervalvalue.innerHTML = "Interval(ms): " + liveint.value.toString(); 
+    });
+    $("#liveint").change(function(){
+         interval = liveint.value;
+         if(live){
+            stopLive();
+            livemodeCB.checked=false;
+         }
+
+    });
+});
+
+function getCurrentConfig(){
+    $.ajax({
+        url: '/getconfig',
+        type: 'POST',
+        success: function (response) {
+            data = JSON.parse(response);
+            path = data["dbfilepath"];
+            currentConfig.innerHTML = "Current path: " + path;
+        },
+        error: function (error) {
+            console.log(error);
+        }
+    });
+}
+
+function changeStatusTime(){
+    liveModeStatus.innerHTML = "Status: On, next request in: " + timeleft.toString() + " ms";
+}
+function updateCountDown(){
+    if(live){
+        if (timeleft>0){
+            timeleft -= intervalChange;
+            changeStatusTime();
+            setTimeout(() => {
+                updateCountDown();
+            }, intervalChange);
+        }
+        else{
+            liveModeStatus.innerHTML = "Status: Loading data...";
+            getData();
+        }
+    }
+}
+
+function checkLive(){
+ if(live){
+    changeStatusTime();
+    timeleft = interval;
+    setTimeout(() => {
+        updateCountDown();
+    }, intervalChange);
+ }
+}
+
+function startLive(){
+    live = true;
+    liveModeStatus.innerHTML = "Status: Loading data...";
+    getData();
+}
+
+function stopLive(){
+    live = false;
+    liveModeStatus.innerHTML = "Status: Off";
+}
+
 function getValues() {
     /*What do i want to send?
     1) list of width and height as NxM strings, empty if any
@@ -72,6 +155,7 @@ function getValues() {
             controltypes.push(element.value);
         }
     });
+    
     var data = {
         "sizes": sizes,
         "solvetypes": solvetypes,
@@ -142,33 +226,65 @@ function createTable(data){
     });
     tableContainer.appendChild(tbl)
 }
-$(function () {
-    $('#getdata').click(function () {
-        var mydata = getValues();
-        if (mydata != -1){
-            console.log(mydata);
-            $.ajax({
-                url: '/getdata',
-                data: mydata,
-                type: 'POST',
-                success: function (response) {
-                    /*What do i get?
-                    a list of arrays [id, size, time, moves, tps, scramble, solution, date]
-                        (move/time array store in db and can be accesed later by id)
-                    */
-                    data = JSON.parse(response);
-                    console.log(data);
-                    createTable(data);
-                },
-                error: function (error) {
-                    console.log(error);
-                }
-            });
+
+function getData(){
+    var mydata = getValues();
+    if (mydata != -1){
+        console.log(mydata);
+        $.ajax({
+            url: '/getdata',
+            data: mydata,
+            type: 'POST',
+            success: function (response) {
+                /*What do i get?
+                a list of arrays [id, size, time, moves, tps, scramble, solution, date]
+                    (move/time array store in db and can be accesed later by id)
+                */
+                data = JSON.parse(response);
+                data.sort((a, b) => b["ID"] - a["ID"]);
+                checkLive();
+                createTable(data);
+            },
+            error: function (error) {
+                console.log(error);
+            }
+        });
+    }
+}
+
+function updatePath(){
+    pathdata = JSON.stringify({"dbfilepath":dbfilepath.value});
+    console.log(pathdata);
+    $.ajax({
+        url: '/changedbpath',
+        data: pathdata,
+        type: 'POST',
+        success: function (response) {
+            getCurrentConfig();
+        },
+        error: function (error) {
+            alert("Something is wrong, check the console");
+            console.log(error);
         }
-      //  else{
-            //alert("Your data is bad");
-       // }
-
     });
-});
+}
 
+function uploadFile(){
+    console.log("Uploading...");
+    const formData = new FormData();
+    formData.append("file", dbfile.files[0]);
+    $.ajax({
+        url: '/uploaddb',
+        data: formData,
+        type: 'POST',
+        processData: false,
+        contentType: false,
+        success: function (response) {
+            console.log("Uploaded!");
+            getData();
+        },
+        error: function (error) {
+            console.log(error);
+        }
+    });
+}

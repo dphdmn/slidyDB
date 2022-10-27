@@ -1,22 +1,20 @@
 import math
 from datetime import datetime
-
 from flask import Flask, render_template, request, json
 import sqlite3
-from pprint import pprint
+import configparser
 
+CFG = configparser.ConfigParser()
 app = Flask(__name__)
 
 
 def getSizes(sizesList):
-    # input - strings like 4x4 3x3 15x5...
     q = ""
     for size in sizesList:
         if q != "":
             q += " or "
         a, b = size.split('x')
         q += "width={a} and height={b}".format(a=a, b=b)
-    # output - empty string if input was empty, width=4 and height=4 or width=5 and height=5 or width=3 and height=6 in other case
     if q != "":
         q = "({q})".format(q=q)
     return q
@@ -118,10 +116,13 @@ def getsqlfromdb(data):
         ) group by solve_id) as c on b.id=c.solve_id
     )
     """.format(rules=getRulesString(data))
-    return sqlite3.connect("testing/solves.db").cursor().execute(sql).fetchall()
+    print(CFG["LOCAL"]["dbfilepath"])
+    return sqlite3.connect(CFG["LOCAL"]["dbfilepath"]).cursor().execute(sql).fetchall()
+
 
 def truncate(f, n):
     return math.floor(f * 10 ** n) / 10 ** n
+
 
 def prepareData(rows):
     data = []
@@ -129,14 +130,16 @@ def prepareData(rows):
         d = {};
         d['ID'] = array[0]
         d['Size'] = "{w}x{h}".format(w=array[1], h=array[2])
-        d['Time'] = truncate(array[3]/1000, 3)
-        d['Moves'] = int(array[4]/1000)
-        d['TPS'] = truncate(array[5]/1000, 3)
+        d['Time'] = truncate(array[3] / 1000, 3)
+        d['Moves'] = int(array[4] / 1000)
+        d['TPS'] = truncate(array[5] / 1000, 3)
         d['Scramble'] = array[6]
         d['Solution'] = array[7]
-        d['Date'] = datetime.utcfromtimestamp(int(array[8]/1000))
+        d['Date'] = datetime.utcfromtimestamp(int(array[8] / 1000))
         data.append(d)
     return data
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -151,4 +154,40 @@ def getrequest():
     return json.dumps(out)
 
 
-app.run()
+@app.route('/uploaddb', methods=['POST'])
+def uploaddb():
+    db = request.files['file']
+    try:
+        db.save("uploads/solves.db")
+        return "Uploaded"
+    except Exception as e:
+        print(str(e))
+        return str(e), 400
+
+
+@app.route('/getconfig', methods=['POST'])
+def getconfig():
+    data = {"dbfilepath": CFG["LOCAL"]["dbfilepath"]}
+    return json.dumps(data)
+
+
+@app.route('/changedbpath', methods=['POST'])
+def changedbpath():
+    data = request.get_json(force=True)
+    try:
+        CFG["LOCAL"]["dbfilepath"] = data["dbfilepath"]
+        with open('config.ini', 'w') as c:
+            CFG.write(c)
+        return ("Updated")
+    except Exception as e:
+        print(str(e))
+        return str(e), 400
+
+
+def main():
+    CFG.read("config.ini")
+    app.run()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,9 +1,21 @@
 <html>
 <head>
     <script src="{{url_for('static', filename='jquery-3.6.1.min.js')}}"></script>
+    <link rel="apple-touch-icon" sizes="180x180" href="{{url_for('static', filename='icons/apple-touch-icon.png')}}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{url_for('static', filename='icons/favicon-32x32.png')}}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{url_for('static', filename='icons/favicon-16x16.png')}}">
+    <link rel="manifest" href="{{url_for('static', filename='icons/site.webmanifest')}}">
 </head>
 <body>
 <script src="{{url_for('static', filename='myjs.js')}}"></script>
+<div>
+    <p id="currentConfig"></p>
+    <p>Update config file, example:C:/Users/dphdmn/slidysimv29.0pre1/slidysim29/solves.db</p>
+    <input id="dbfilepath" type="text"/>
+    <div>
+        <input id="dbfilepathChange" type="button" value="Update" />
+    </div>
+</div>
 <div>
     <p>Size</p>
     <span>
@@ -221,7 +233,20 @@
     </span>
 </div>
 <div>
-    <input id="getdata" type="button" value="Eggag!" />
+</div>
+<div>
+    <input id="updatecached" type="button" value="Update last uploaded" />
+</div>
+<div>
+<span>
+    <p>Live mode</p>
+    <input id="livemodeCB" type="checkbox" value="Live mode update"/>
+    <label for="livemodeCB">Live mode update</label>
+    <input type="range" id="liveint" min="1000" max="60000" step="100" value="1000">
+    <label for="liveint">Update interval</label>
+    <p id="intervalvalue">Interval(ms): 1000</p>
+    <p id="liveModeStatus">Status: Off</p>
+</span>
 </div>
 <div id="tableContainer">
 
@@ -247,9 +272,21 @@
     const noDNFCB = document.getElementById("noDNFCB");
     const onlyCompletedCB = document.getElementById("onlyCompletedCB");
     const tableContainer = document.getElementById("tableContainer");
+    const dbfile = document.getElementById("dbfile");
+    const updatecached = document.getElementById("updatecached");
+    const dbfilepath = document.getElementById("dbfilepath");
+    const livemodeCB = document.getElementById("livemodeCB");
+    const liveModeStatus = document.getElementById("liveModeStatus");
+    const liveint = document.getElementById("liveint");
+    const intervalvalue = document.getElementById("intervalvalue");
+    const currentConfig = document.getElementById("currentConfig");
     const rgNxM = /^[1-9][0-9]{0,3}[x|X][1-9][0-9]{0,3}$/;
     const rgMarathon = /^[1-9][0-9]{0,5}|1000000$/;
     const headers = ["ID", "Size", "Time", "Moves", "TPS", "Scramble", "Solution", "Date"];
+    var live = false;
+    var interval = 1000;
+    var intervalChange = 100;
+    var timeleft = interval;
 </script>
 </body>
 
