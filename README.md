@@ -1,3 +1,7 @@
+# 2025 update
+
+Archived as obsolete. Please use [slidysimSessionTracker](https://github.com/dphdmn/slidysimSessionTracker/blob/main/README.md)
+
 # slidyDB
 Slidysim solves database viewer
 
